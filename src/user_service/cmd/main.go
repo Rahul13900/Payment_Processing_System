@@ -10,11 +10,19 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load("../../.env.local"); err != nil {
+	if err := godotenv.Load("../.env.local"); err != nil {
 		log.Println("Note: env file not found, using default values")
 	}
 
+	// load config
 	cfg := config.LoadConfig()
+
+	// Database connection
+	db, err := config.NewDatabase(cfg)
+	if err != nil {
+		log.Fatalf("Failed to connect to Database: %v", err)
+	}
+	defer db.Close()
 
 	// router
 	router := gin.Default()
