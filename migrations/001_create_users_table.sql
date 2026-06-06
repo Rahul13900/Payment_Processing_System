@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users(
   updated_at TIMESTAMP DEFAULT NOW(),
 
   CHECK (role IN ('USER','ADMIN','MERCHANT')),
-  CHECK (role IN ('ACTIVE','SUSPENDED','DELETED'))
+  CHECK (status IN ('ACTIVE','SUSPENDED','DELETED'))
 );
 
 CREATE INDEX idx_users_email ON users(email);
