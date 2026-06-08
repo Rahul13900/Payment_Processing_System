@@ -5,8 +5,10 @@ import (
 	"log"
 	"user_service/internal/config"
 	"user_service/internal/handler"
+	"user_service/internal/middleware"
 	"user_service/internal/repository"
 	"user_service/internal/service"
+	"user_service/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -27,10 +29,16 @@ func main() {
 	}
 	defer db.Close()
 
+	// Initialize JWT manager
+	jwtManager := jwt.NewJWTManager(
+		cfg.JWT.SecretKey,
+		cfg.JWT.Expiry,
+	)
+
 	// Initialize layers
 	userRepo := repository.NewPostgresUserRepository(db)
 	userService := service.NewUserService(userRepo)
-	UserHandler := handler.NewUserHandler(userService)
+	UserHandler := handler.NewUserHandler(userService, jwtManager)
 
 	// router
 	router := gin.Default()
@@ -43,9 +51,10 @@ func main() {
 	}
 
 	// user routes
-	users := router.Group("/api/v1/users")
+	protected := router.Group("/api/v1/users")
+	protected.Use(middleware.AuthMiddleware(jwtManager))
 	{
-		users.GET("/me", UserHandler.GetProfile)
+		protected.GET("/me", UserHandler.GetProfile)
 	}
 
 	// start server

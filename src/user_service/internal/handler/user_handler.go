@@ -6,17 +6,20 @@ import (
 	"user_service/internal/models"
 	"user_service/internal/service"
 	"user_service/internal/usererrors"
+	"user_service/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
-	service *service.UserService
+	service    *service.UserService
+	jwtManager *jwt.JWTManager
 }
 
-func NewUserHandler(service *service.UserService) *UserHandler {
+func NewUserHandler(service *service.UserService, jwtManager *jwt.JWTManager) *UserHandler {
 	return &UserHandler{
-		service: service,
+		service:    service,
+		jwtManager: jwtManager,
 	}
 }
 
@@ -62,11 +65,24 @@ func (h *UserHandler) Register(c *gin.Context) {
 			return
 		}
 	}
+
+	// Generate JWT token
+	token, err := h.jwtManager.GenerateToken(user.ID, user.Email, user.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error:   "INTERNAL_ERROR",
+			Message: "Failed to generate token",
+		})
+		return
+	}
+
 	// Success Response
 	resp := models.AuthResponse{
-		UserID: user.ID,
-		Email:  user.Email,
-		Name:   user.Name,
+		UserID:      user.ID,
+		Email:       user.Email,
+		Name:        user.Name,
+		AccessToken: token,
+		ExpiresIn:   3600,
 	}
 	c.JSON(http.StatusCreated, resp)
 }
@@ -95,11 +111,23 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// Generate JWT token
+	token, err := h.jwtManager.GenerateToken(user.ID, user.Email, user.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
+			Error:   "INTERNAL_ERROR",
+			Message: "Failed to generate token",
+		})
+		return
+	}
+
 	// Success response
 	resp := models.AuthResponse{
-		UserID: user.ID,
-		Email:  user.Email,
-		Name:   user.Name,
+		UserID:      user.ID,
+		Email:       user.Email,
+		Name:        user.Name,
+		AccessToken: token,
+		ExpiresIn:   3600,
 	}
 
 	c.JSON(http.StatusOK, resp)
