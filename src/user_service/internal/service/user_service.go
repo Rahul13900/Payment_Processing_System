@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	usererrors "user_service/internal/errors"
 	"user_service/internal/models"
 	"user_service/internal/repository"
+	"user_service/internal/usererrors"
 	"user_service/pkg/hash"
 )
 
@@ -61,7 +61,7 @@ func (s *UserService) Login(ctx context.Context, email, password string) (*model
 	// Find user by email
 	user, err := s.repo.FindByEmail(ctx, email)
 	if err != nil {
-		return nil, usererrors.ErrInvalidCredentails
+		return nil, usererrors.ErrInvalidCredentials
 	}
 	// check if the user is active
 	if user.Status != models.StatusActive {
@@ -69,7 +69,7 @@ func (s *UserService) Login(ctx context.Context, email, password string) (*model
 	}
 	// verify password
 	if err := s.hash.Verify(user.Password, password); err != nil {
-		return nil, usererrors.ErrInvalidCredentails
+		return nil, usererrors.ErrInvalidCredentials
 	}
 	return user, nil
 }

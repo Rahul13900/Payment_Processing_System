@@ -3,9 +3,9 @@ package handler
 import (
 	"errors"
 	"net/http"
-	usererrors "user_service/internal/errors"
 	"user_service/internal/models"
 	"user_service/internal/service"
+	"user_service/internal/usererrors"
 
 	"github.com/gin-gonic/gin"
 )
