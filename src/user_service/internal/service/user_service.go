@@ -8,6 +8,7 @@ import (
 	"user_service/internal/repository"
 	"user_service/internal/usererrors"
 	"user_service/pkg/hash"
+	"user_service/pkg/logger"
 )
 
 type UserService struct {
@@ -23,9 +24,13 @@ func NewUserService(repo repository.UserRepository) *UserService {
 }
 
 func (s *UserService) Register(ctx context.Context, name, email, passwrod string) (*models.User, error) {
+	ctx, methodname := logger.FuncInitializer(ctx, "Register")
+	defer logger.FuncDisposer(ctx, methodname)
 	// Normalize input
 	name = strings.TrimSpace(name)
 	email = strings.TrimSpace(strings.ToLower(email))
+
+	logger.Info(ctx, methodname, "Hashing password")
 
 	// Hash  Password
 	hashedPassword, err := s.hash.Hash(passwrod)
@@ -49,12 +54,19 @@ func (s *UserService) Register(ctx context.Context, name, email, passwrod string
 		}
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
+	ctx = logger.WithUserID(ctx, user.ID)
+	ctx = logger.WithEmail(ctx, user.Email)
+
+	logger.Info(ctx, methodname, "User created successfully")
+
 	return user, nil
 }
 
 // Login
 
 func (s *UserService) Login(ctx context.Context, email, password string) (*models.User, error) {
+	ctx, methodname := logger.FuncInitializer(ctx, "Login")
+	defer logger.FuncDisposer(ctx, methodname)
 	// normalize input
 	email = strings.TrimSpace(email)
 
@@ -71,21 +83,35 @@ func (s *UserService) Login(ctx context.Context, email, password string) (*model
 	if err := s.hash.Verify(user.Password, password); err != nil {
 		return nil, usererrors.ErrInvalidCredentials
 	}
+	ctx = logger.WithUserID(ctx, user.ID)
+	ctx = logger.WithEmail(ctx, user.Email)
+
+	logger.Info(ctx, methodname, "Login successful")
 	return user, nil
 }
 
 // GetUserByID retrieves a user by ID
 func (s *UserService) GetUserByID(ctx context.Context, userID int) (*models.User, error) {
+	ctx, methodname := logger.FuncInitializer(ctx, "GetUserByID")
+	defer logger.FuncDisposer(ctx, methodname)
+
+	logger.Info(ctx, methodname, "Fetching user from database")
+
 	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, usererrors.ErrUserNotFound
 	}
+
+	logger.Info(ctx, methodname, "User retrieved Successfully")
 
 	return user, nil
 }
 
 // GetUserByEmail retrieves a user by email
 func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	ctx, methodname := logger.FuncInitializer(ctx, "GetUserByEmail")
+	defer logger.FuncDisposer(ctx, methodname)
+
 	email = strings.TrimSpace(strings.ToLower(email))
 
 	user, err := s.repo.FindByEmail(ctx, email)

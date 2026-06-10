@@ -42,7 +42,8 @@ func main() {
 
 	// router
 	router := gin.Default()
-
+	router.Use(middleware.RequestIDMiddleware()) // Add request ID & context
+	router.Use(middleware.LoggingMiddleware())   // log requests
 	// Auth Routes
 	auth := router.Group("/api/v1/auth")
 	{

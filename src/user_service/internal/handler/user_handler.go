@@ -7,6 +7,7 @@ import (
 	"user_service/internal/service"
 	"user_service/internal/usererrors"
 	"user_service/pkg/jwt"
+	"user_service/pkg/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,9 +26,13 @@ func NewUserHandler(service *service.UserService, jwtManager *jwt.JWTManager) *U
 
 // Register handles POST /auth/register
 func (h *UserHandler) Register(c *gin.Context) {
+	ctx, methodname := logger.FuncInitializer(c.Request.Context(), "Register")
+	defer logger.FuncDisposer(ctx, methodname)
+
 	var req models.RegisterRequest
 	// parse and validate the request
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warn(ctx, methodname, "Invalid request body")
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "Validation Error",
 			Message: "Invalid request: " + err.Error(),
@@ -38,6 +43,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 	// Call Service
 	user, err := h.service.Register(c.Request.Context(), req.Name, req.Email, req.Password)
 	if err != nil {
+		logger.Error(ctx, methodname, err)
 		switch {
 		case errors.Is(err, usererrors.ErrInvalidEmail):
 			c.JSON(http.StatusBadRequest, models.ErrorResponse{
@@ -66,9 +72,14 @@ func (h *UserHandler) Register(c *gin.Context) {
 		}
 	}
 
+	// Enrich context with user info for logging
+	ctx = logger.WithUserID(ctx, user.ID)
+	ctx = logger.WithEmail(ctx, user.Email)
+
 	// Generate JWT token
 	token, err := h.jwtManager.GenerateToken(user.ID, user.Email, user.Role)
 	if err != nil {
+		logger.Error(ctx, methodname, err)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "INTERNAL_ERROR",
 			Message: "Failed to generate token",
@@ -89,10 +100,13 @@ func (h *UserHandler) Register(c *gin.Context) {
 
 // Login handles POST /auth/login
 func (h *UserHandler) Login(c *gin.Context) {
+	ctx, methodname := logger.FuncInitializer(c.Request.Context(), "Login")
+	defer logger.FuncDisposer(ctx, methodname)
 	var req models.LoginRequest
 
 	// Parse and validate request
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Warn(ctx, methodname, "invalid reqeuest body")
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
 			Error:   "VALIDATION_ERROR",
 			Message: "Invalid request",
@@ -103,6 +117,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 	// Call service
 	user, err := h.service.Login(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
+		logger.Error(ctx, methodname, err)
 		// Don't reveal which field is wrong
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
 			Error:   "INVALID_CREDENTIALS",
@@ -110,10 +125,13 @@ func (h *UserHandler) Login(c *gin.Context) {
 		})
 		return
 	}
+	ctx = logger.WithEmail(ctx, user.Email)
+	ctx = logger.WithUserID(ctx, user.ID)
 
 	// Generate JWT token
 	token, err := h.jwtManager.GenerateToken(user.ID, user.Email, user.Role)
 	if err != nil {
+		logger.Error(ctx, methodname, err)
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "INTERNAL_ERROR",
 			Message: "Failed to generate token",
@@ -135,8 +153,12 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 // GetProfile handles GET /users/me
 func (h *UserHandler) GetProfile(c *gin.Context) {
+	ctx, methodname := logger.FuncInitializer(c.Request.Context(), "GetProfile")
+	defer logger.FuncDisposer(ctx, methodname)
+
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
+		logger.Warn(ctx, methodname, "User ID not found")
 		c.JSON(http.StatusUnauthorized, models.ErrorResponse{
 			Error:   "UNAUTHORIZED",
 			Message: "User ID not found in context",
@@ -146,6 +168,7 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 
 	userID, ok := userIDInterface.(int)
 	if !ok {
+		logger.Warn(ctx, methodname, "Invalid User ID type")
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
 			Error:   "INTERNAL_ERROR",
 			Message: "Invalid user ID type",
@@ -153,9 +176,13 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
+	ctx = logger.WithUserID(ctx, userID)
+	logger.Info(ctx, methodname, "Fetching user profile")
+
 	// Get user
 	user, err := h.service.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
+		logger.Error(ctx, methodname, err)
 		c.JSON(http.StatusNotFound, models.ErrorResponse{
 			Error:   "NOT_FOUND",
 			Message: "User not found",
