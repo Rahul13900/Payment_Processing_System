@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"user_service/pkg/logger"
+	"shared/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

@@ -6,8 +6,8 @@ import (
 	"user_service/internal/models"
 	"user_service/internal/service"
 	"user_service/internal/usererrors"
-	"user_service/pkg/jwt"
-	"user_service/pkg/logger"
+	"shared/jwt"
+	"shared/logger"
 
 	"github.com/gin-gonic/gin"
 )

@@ -8,7 +8,7 @@ import (
 	"user_service/internal/repository"
 	"user_service/internal/usererrors"
 	"user_service/pkg/hash"
-	"user_service/pkg/logger"
+	"shared/logger"
 )
 
 type UserService struct {

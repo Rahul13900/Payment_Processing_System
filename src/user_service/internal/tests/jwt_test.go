@@ -1,9 +1,9 @@
 package user_test
 
 import (
+	"shared/jwt"
 	"testing"
 	"time"
-	"user_service/pkg/jwt"
 
 	"github.com/stretchr/testify/assert"
 )

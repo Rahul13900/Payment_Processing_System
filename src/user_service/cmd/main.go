@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"shared/jwt"
 	"user_service/internal/config"
 	"user_service/internal/handler"
-	"user_service/internal/middleware"
+	"shared/middleware"
 	"user_service/internal/repository"
 	"user_service/internal/service"
-	"user_service/pkg/jwt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
